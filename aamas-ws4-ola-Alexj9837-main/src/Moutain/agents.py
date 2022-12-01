@@ -8,6 +8,12 @@ FREE = 1
 UNDONE = 0
 DONE = 1
 
+BUSY_RETURNING_HOME = 4
+BUSY_GIVING_AID = 3
+BUSY_FOUND_HUMAN = 2
+BUSY = 1
+FREE = 0
+
 Found_patients = []
 waiting_patients = []
 
@@ -55,7 +61,7 @@ class finder_Robot(mesa.Agent):
 
         action = "move_mountain"
 
-        action = "move_charging"
+        #action = "move_charging"
 
         print("ag_", self.unique_id, " action:", action)
         return action
@@ -179,6 +185,8 @@ class healer_Robot(mesa.Agent):
         Simple rule-based architecture, should determine the action to execute based on the robot state.
 
         """
+
+
         action = "move_start"
 
         action = "check_patient_list"
