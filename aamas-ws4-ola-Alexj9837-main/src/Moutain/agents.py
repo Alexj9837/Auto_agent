@@ -1,14 +1,22 @@
 from optparse import check_builtin
 import mesa
 from Moutain.mountain_loc import mountain_location
+import random as rand
+
+
 NUMBER_OF_CELLS = 50
-BUSY = 0
-FREE = 1
 
 UNDONE = 0
 DONE = 1
 
+Mountain = mountain_location["3k"] + \
+    mountain_location["2k"] + mountain_location["1k"]
+
+BUSY_ON_ROUTE_TO_GIVE_AID =7
+WAITING_ON_PATIENTS =6
+ON_MOUNTAIN = 5
 BUSY_RETURNING_HOME = 4
+
 BUSY_GIVING_AID = 3
 BUSY_FOUND_HUMAN = 2
 BUSY = 1
@@ -32,15 +40,12 @@ class finder_Robot(mesa.Agent):
         self.x, self.y = pos
         self.next_x, self.next_y = None, None
         self.state = init_state
-        self.start_pos = [25,25]
-        self.charging_station = [50,25]
-
+        self.start_pos = [20, 35]
+        self.charging_station = [50, 25]
 
     @property
     def isBusy(self):
-        return self.state == BUSY 
-
-
+        return self.state == BUSY
 
     def step(self):
         """
@@ -59,11 +64,28 @@ class finder_Robot(mesa.Agent):
         Simple rule-based architecture, should determine the action to execute based on the robot state.
         """
 
-        action = "move_mountain"
+        if self.state == FREE and (self.x, self.y) not in Mountain:
+            print(self.x, self.y)
+            action = "move_mountain"
+        else:
+            if (self.x, self.y) in Mountain and self.state != BUSY_FOUND_HUMAN :
+                self.state = ON_MOUNTAIN
 
-        #action = "move_charging"
+            if self.state == ON_MOUNTAIN:
 
-        print("ag_", self.unique_id, " action:", action)
+                if self.Search_area() == True:
+                    action = "wait"
+                else:
+                    action = self.possible_moves()
+        """ 
+        setting the state to BUSY_FOUND_HUMAN to force the action wait, while the healer robots move to the area
+        """
+        if self.state == BUSY_FOUND_HUMAN:
+                action= "wait"
+
+
+        print("ag_", self.unique_id, " action:",
+              action, " State:", self.state,)
         return action
 
     # Robot actions
@@ -111,17 +133,29 @@ class finder_Robot(mesa.Agent):
     def move_right(self):
         self.move_to((self.x + 1, self.y))
         self.move()
-    
+
+    def possible_moves(self):
+        possible_moves_list = []
+        if (self.x + 1, self.y) in Mountain:
+            possible_moves_list.append("move_right")
+        if (self.x - 1, self.y) in Mountain:
+            possible_moves_list.append("move_left")
+        if (self.x, self.y - 1) in Mountain:
+            possible_moves_list.append("move_down")
+        if (self.x, self.y + 1) in Mountain:
+            possible_moves_list.append("move_up")
+        
+        return rand.choice(possible_moves_list)
+
     def move_mountain(self):
         """
-        Move the robot to the workshop
+        Move the robot to the mountain base
         """
         self.move_to([self.start_pos[0], self.start_pos[1]])
 
     def move_charging(self):
-  
-        self.move_to([self.charging_station[0], self.charging_station[1]])
 
+        self.move_to([self.charging_station[0], self.charging_station[1]])
 
     def wait(self):
         """
@@ -142,11 +176,16 @@ class finder_Robot(mesa.Agent):
         Search the local area around the finder robot. and append
         """
         nbs = [nb for nb in self.model.grid.neighbor_iter(
-            (self.x, self.y), False)]
+            (self.x, self.y), True)]
         for i in range(len(nbs)):
             if isinstance(nbs[i], Patient):
-                Patient = nbs[0]
-                Found_patients.append(Patient.self.x, Patient.self.y)
+                patient = nbs[0]
+                if (patient.x, patient.y) in Found_patients:
+                    pass
+                else:
+                    Found_patients.append((patient.x, patient.y))
+                    self.state = BUSY_FOUND_HUMAN
+                    return True
 
 
 class healer_Robot(mesa.Agent):
@@ -161,7 +200,7 @@ class healer_Robot(mesa.Agent):
         self.lane = self.y
         self.next_x, self.next_y = None, None
         self.state = init_state
-        self.start_loc = [0,24]
+        self.start_loc = [0, 24]
 
     @property
     def isBusy(self):
@@ -186,26 +225,28 @@ class healer_Robot(mesa.Agent):
 
         """
 
+        if self.state == FREE:
+            action = "check_patient_list"
 
-        action = "move_start"
+        if self.state == BUSY_ON_ROUTE_TO_GIVE_AID:
+           action = self.move_give_aid()
 
-        action = "check_patient_list"
 
 
-        
         # **TODO Implement **
 
-        print("ag_", self.unique_id, " action:", action)
+        print("ag_", self.unique_id, " action:", action, " State:", self.state,)
         return action
 
     # Robot actions
 
-    def check_patient_list():
+    def check_patient_list(self):
         if Found_patients == []:
-            return  "wait"
+            return "wait"
         else:
             temp = Found_patients.pop()
             waiting_patients.append(temp)
+            self.state = BUSY_ON_ROUTE_TO_GIVE_AID
 
     def move(self):
         """
@@ -251,10 +292,10 @@ class healer_Robot(mesa.Agent):
         """
         Move the robot to deliver aid to patient
         """
+        target = []
         target = waiting_patients.pop()
 
-        self.move_to([self.target[0], self.target[1]])
-
+        self.move_to([target[0],target[1]])
 
     def advance(self):
         """
@@ -278,7 +319,6 @@ class healer_Robot(mesa.Agent):
     def move_right(self):
         self.move_to((self.x + 1, self.y))
         self.move()
-
 
 
 class Patient(mesa.Agent):
