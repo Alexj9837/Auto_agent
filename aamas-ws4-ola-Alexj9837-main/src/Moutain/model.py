@@ -3,8 +3,8 @@ import numpy as np
 from Moutain.agents import finder_Robot
 from Moutain.agents import healer_Robot
 from Moutain.agents import Patient
+from Moutain.mountain_loc import mountain_location
 from .agents import DONE
-
 
 def pending_patients(model):
     return len([a for a in model.schedule.agents if isinstance(a, Patient) and a.state != DONE])
@@ -63,16 +63,16 @@ class Mountain(mesa.Model):
             self.grid.place_agent(pr, (x, y))
 
         for n in range(self.n_Patient):
+                    MountainPositions = mountain_location.keys()
+                    keys = [key for key in mountain_location]
+                    while True:
+                        x, y = self.random.choice(mountain_location[keys[n]])
+                        if self.grid.is_cell_empty((x, y)):
+                            break
 
-            while True:
-                x = self.random.randint(4, width-1)
-                y = self.random.choice(y_s)
-                if self.grid.is_cell_empty((x, y)):
-                    break
-
-            b = Patient(n+self.n_robots+n_healers, (x, y), self)
-            self.schedule.add(b)
-            self.grid.place_agent(b, (x, y))
+                    b = Patient(n+self.n_healers+self.n_robots, (x, y), self)
+                    self.schedule.add(b)
+                    self.grid.place_agent(b, (x, y))
 
         self.running = True
 

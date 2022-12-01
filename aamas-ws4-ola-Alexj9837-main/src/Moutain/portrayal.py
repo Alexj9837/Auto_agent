@@ -8,14 +8,16 @@ def Moutain_portrayal(agent):
     """
     Determine which portrayal to use according to the type of agent.
     """
+
     if isinstance(agent, finder_Robot):
         return robot_portrayal(agent)
 
     elif isinstance(agent, healer_Robot):
-        return healer_portrayal(agent)ls
+        return healer_portrayal(agent)
 
     else:
         return patient_portrayal(agent)
+
 
 
 def robot_portrayal(robot):

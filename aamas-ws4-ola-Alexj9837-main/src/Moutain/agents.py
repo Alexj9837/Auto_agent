@@ -1,6 +1,6 @@
 from optparse import check_builtin
 import mesa
-
+from Moutain.mountain_loc import mountain_location
 NUMBER_OF_CELLS = 50
 BUSY = 0
 FREE = 1
@@ -9,6 +9,7 @@ UNDONE = 0
 DONE = 1
 
 Found_patients = []
+waiting_patients = []
 
 healed_patients = []
 
@@ -25,10 +26,15 @@ class finder_Robot(mesa.Agent):
         self.x, self.y = pos
         self.next_x, self.next_y = None, None
         self.state = init_state
+        self.start_pos = [25,25]
+        self.charging_station = [50,25]
+
 
     @property
     def isBusy(self):
-        return self.state == BUSY  # **TODO Revise if robot states are updated  **
+        return self.state == BUSY 
+
+
 
     def step(self):
         """
@@ -46,9 +52,10 @@ class finder_Robot(mesa.Agent):
         """
         Simple rule-based architecture, should determine the action to execute based on the robot state.
         """
-       # while self.y != 25:
 
-        action = "move"
+        action = "move_mountain"
+
+        action = "move_charging"
 
         print("ag_", self.unique_id, " action:", action)
         return action
@@ -65,6 +72,7 @@ class finder_Robot(mesa.Agent):
         """
         Generic method to move robot to a given destination, considering the edges of the grid.
         """
+
         delta_y = 0
         delta_x = 0
 
@@ -97,6 +105,17 @@ class finder_Robot(mesa.Agent):
     def move_right(self):
         self.move_to((self.x + 1, self.y))
         self.move()
+    
+    def move_mountain(self):
+        """
+        Move the robot to the workshop
+        """
+        self.move_to([self.start_pos[0], self.start_pos[1]])
+
+    def move_charging(self):
+  
+        self.move_to([self.charging_station[0], self.charging_station[1]])
+
 
     def wait(self):
         """
@@ -136,6 +155,7 @@ class healer_Robot(mesa.Agent):
         self.lane = self.y
         self.next_x, self.next_y = None, None
         self.state = init_state
+        self.start_loc = [0,24]
 
     @property
     def isBusy(self):
@@ -159,9 +179,12 @@ class healer_Robot(mesa.Agent):
         Simple rule-based architecture, should determine the action to execute based on the robot state.
 
         """
+        action = "move_start"
 
         action = "check_patient_list"
 
+
+        
         # **TODO Implement **
 
         print("ag_", self.unique_id, " action:", action)
@@ -169,11 +192,12 @@ class healer_Robot(mesa.Agent):
 
     # Robot actions
 
-    def check_patient_list(Found_patients):
-        while Found_patients == []:
-            action = "wait"
+    def check_patient_list():
+        if Found_patients == []:
+            return  "wait"
         else:
-            Found_patients.pop()
+            temp = Found_patients.pop()
+            waiting_patients.append(temp)
 
     def move(self):
         """
@@ -209,12 +233,20 @@ class healer_Robot(mesa.Agent):
         self.next_x = self.x
         self.next_y = self.y
 
-    def move_home(self):
+    def move_start(self):
         """
         Move the robot to the workshop
         """
-        self.move_to([self.x, self.workshop])
-        self.move_payload()
+        self.move_to([self.start_loc[0], self.start_loc[1]])
+
+    def move_give_aid(self):
+        """
+        Move the robot to deliver aid to patient
+        """
+        target = waiting_patients.pop()
+
+        self.move_to([self.target[0], self.target[1]])
+
 
     def advance(self):
         """
@@ -222,6 +254,23 @@ class healer_Robot(mesa.Agent):
         """
         self.x = self.next_x
         self.y = self.next_y
+
+    def move_up(self):
+        self.move_to((self.x, self.y + 1))
+        self.move()
+
+    def move_down(self):
+        self.move_to((self.x, self.y - 1))
+        self.move()
+
+    def move_left(self):
+        self.move_to((self.x - 1, self.y))
+        self.move()
+
+    def move_right(self):
+        self.move_to((self.x + 1, self.y))
+        self.move()
+
 
 
 class Patient(mesa.Agent):
@@ -235,6 +284,7 @@ class Patient(mesa.Agent):
         self.state = UNDONE
         self.next_state = UNDONE
         self.x, self.y = pos
+        self.pos
 
     def set_state(self, new_state):
         """
