@@ -19,7 +19,6 @@ def Moutain_portrayal(agent):
         return patient_portrayal(agent)
 
 
-
 def robot_portrayal(robot):
 
     if robot is None:
@@ -72,5 +71,5 @@ def patient_portrayal(Patient):
         "Layer": 0,
         "x": Patient.x,
         "y": Patient.y,
-        "Color": "gold" if Patient.state else "Green",
+        "Color": "gold" if Patient.health == 100 else "Green",
     }
