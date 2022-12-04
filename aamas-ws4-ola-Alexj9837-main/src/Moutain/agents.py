@@ -12,6 +12,7 @@ DONE = 1
 Mountain = mountain_location["3k"] + \
     mountain_location["2k"] + mountain_location["1k"]
 
+DEAD_BATTERY = 9
 HEALTHY = 8
 BUSY_ON_ROUTE_TO_GIVE_AID = 7
 WAITING_ON_PATIENTS = 6
@@ -28,7 +29,7 @@ healed_patients = []
 
 
 class finder_Robot(mesa.Agent):
-    def __init__(self, id, pos, model, init_state=FREE):
+    def __init__(self, id, pos, model, init_state=FREE,battery=100.00):
         """
         Initialise state attributes, including:
           * current and next position of the robot
@@ -42,7 +43,7 @@ class finder_Robot(mesa.Agent):
         self.start_pos = [20, 35]
         self.charging_station = [50, 25]
         self.injured = None
-
+        self.battery = battery
     @property
     def isBusy(self):
         return self.state == BUSY
@@ -63,7 +64,7 @@ class finder_Robot(mesa.Agent):
         """
         Simple rule-based architecture, should determine the action to execute based on the robot state.
         """
-
+        
         if self.state == FREE and (self.x, self.y) not in Mountain:
             print(self.x, self.y)
             action = "move_mountain"
@@ -77,7 +78,12 @@ class finder_Robot(mesa.Agent):
                 if self.Search_area() == True:
                     action = "wait"
                 else:
+
                     action = self.possible_moves()
+        if self.state == DEAD_BATTERY:
+            action = "wait"
+            print("dead battery ")
+            
 
         """ 
         setting the state to BUSY_FOUND_HUMAN to force the action wait, while the healer robots move to the area
@@ -109,23 +115,31 @@ class finder_Robot(mesa.Agent):
         """
         Generic method to move robot to a given destination, considering the edges of the grid.
         """
+        if self.battery == 0:
+            self.state = DEAD_BATTERY
+            return "wait"
 
-        delta_y = 0
-        delta_x = 0
+        else:
+            delta_y = 0
+            delta_x = 0
 
-        if self.y > destination[1] and self.pos[1] >= 2:
-            delta_y = -1
-        elif self.y < destination[1] and self.pos[1] <= NUMBER_OF_CELLS - 1:
-            delta_y = 1
 
-        if self.x > destination[0] and self.pos[0] >= 2:
-            delta_x = -1
-        elif self.x < destination[0] and self.pos[0] < NUMBER_OF_CELLS - 1:
-            delta_x = 1
+            if self.y > destination[1] and self.pos[1] >= 2:
+                delta_y = -1
+            elif self.y < destination[1] and self.pos[1] <= NUMBER_OF_CELLS - 1:
+                delta_y = 1
 
-        self.next_x = self.x + delta_x
-        self.next_y = self.y + delta_y
-        self.move()
+            if self.x > destination[0] and self.pos[0] >= 2:
+                delta_x = -1
+            elif self.x < destination[0] and self.pos[0] < NUMBER_OF_CELLS - 1:
+                delta_x = 1
+
+            self.next_x = self.x + delta_x
+            self.next_y = self.y + delta_y
+
+            self.battery = self.battery - 1
+            print(self.battery)
+            self.move()
 
     def move_up(self):
         self.move_to((self.x, self.y + 1))
@@ -160,7 +174,10 @@ class finder_Robot(mesa.Agent):
         """
         Move the robot to the mountain base
         """
-        self.move_to([self.start_pos[0], self.start_pos[1]])
+        if  self.pos == self.start_pos:
+            return "wait"
+        else:
+            self.move_to([self.start_pos[0], self.start_pos[1]])
 
     def move_charging(self):
 
@@ -208,11 +225,15 @@ class healer_Robot(mesa.Agent):
         """
         super().__init__(id, model)
         self.x, self.y = pos
+        self.pos = (self.x, self.y)
         self.lane = self.y
         self.next_x, self.next_y = None, None
         self.state = init_state
         self.start_loc = [0, 24]
         self.target = None
+        self.future_key = None
+        self.current_key = None
+        self.counter = 0
 
     @property
     def isBusy(self):
@@ -253,6 +274,7 @@ class healer_Robot(mesa.Agent):
               action, " State:", self.state,)
         return action
 
+
     # Robot actions
 
     def check_patient_list(self):
@@ -288,10 +310,42 @@ class healer_Robot(mesa.Agent):
             delta_x = -1
         elif self.x < destination[0] and self.pos[0] < NUMBER_OF_CELLS - 1:
             delta_x = 1
-
+    
         self.next_x = self.x + delta_x
         self.next_y = self.y + delta_y
-        self.move()
+
+        if self.climbing() == True:
+            self.move()
+            print("Not climbing")
+
+        elif self.counter == 3:
+                self.move()
+                self.counter = 0
+                print(self.counter)
+        else:
+            self.counter += 1
+            self.next_x = self.x 
+            self.next_y = self.y
+            print(f"climbing stage {self.counter} of 3")
+            print(self.counter)
+
+    def climbing(self):
+        next_pos1 = (self.next_x , self.next_y)
+
+        if self.pos not in Mountain:
+            return True
+
+        for keys1 in mountain_location:
+            if  next_pos1 in mountain_location[keys1]:
+                self.future_key = keys1
+
+        for keys2 in mountain_location:
+            if self.pos in mountain_location[keys2]:
+                self.current_key = keys2
+
+        return self.current_key == self.future_key
+
+
 
     def wait(self):
         """
