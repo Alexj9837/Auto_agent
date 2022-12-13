@@ -11,7 +11,7 @@ DONE = 1
 
 Mountain = mountain_location["3k"] + \
     mountain_location["2k"] + mountain_location["1k"]
-
+BIDDING = 10
 DEAD_BATTERY = 9
 HEALTHY = 8
 BUSY_ON_ROUTE_TO_GIVE_AID = 7
@@ -29,7 +29,7 @@ healed_patients = []
 
 
 class finder_Robot(mesa.Agent):
-    def __init__(self, id, pos, model, init_state=FREE, battery=100.00):
+    def __init__(self, id, pos, model, init_state=FREE, battery=rand.randint(80, 100)):
         """
         Initialise state attributes, including:
           * current and next position of the robot
@@ -221,7 +221,7 @@ class finder_Robot(mesa.Agent):
 
 
 class healer_Robot(mesa.Agent):
-    def __init__(self, id, pos, model, init_state=FREE):
+    def __init__(self, id, pos, model, init_state=BIDDING, battery=100):
         """
         Initialise state attributes, including:
           * current and next position of the robot
@@ -238,7 +238,8 @@ class healer_Robot(mesa.Agent):
         self.future_key = None
         self.current_key = None
         self.counter = 0
-        self.battery = None
+        self.battery = battery
+        self.tokens = battery
 
     @property
     def isBusy(self):
@@ -262,7 +263,9 @@ class healer_Robot(mesa.Agent):
         Simple rule-based architecture, should determine the action to execute based on the robot state.
 
         """
-        action = "wait"
+        if self.state == BIDDING:
+            action = "wait"
+
         if self.state == FREE:
             action = self.check_patient_list()
 
@@ -319,10 +322,12 @@ class healer_Robot(mesa.Agent):
         self.next_y = self.y + delta_y
 
         if self.climbing() == True:
+            self.battery = self.battery - 0.1
             self.move()
             print("Not climbing")
 
         elif self.counter == 3:
+            self.battery = self.battery - 0.1
             self.move()
             self.counter = 0
             print(self.counter)

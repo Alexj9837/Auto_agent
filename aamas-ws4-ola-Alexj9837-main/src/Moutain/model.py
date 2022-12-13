@@ -1,10 +1,11 @@
 import mesa
 import numpy as np
-from Moutain.agents import finder_Robot
-from Moutain.agents import healer_Robot
-from Moutain.agents import Patient
+from Moutain.agents import finder_Robot, healer_Robot, Patient
 from Moutain.mountain_loc import mountain_location
 from .agents import DONE
+from Moutain.agents import Found_patients
+from Moutain.agents import BIDDING, FREE
+import random as rand
 
 
 def pending_patients(model):
@@ -58,7 +59,8 @@ class Mountain(mesa.Model):
                     break
 
             y_s.append(y)
-            pr = healer_Robot(n+self.n_robots, (x, y), self)
+            pr = healer_Robot(n+self.n_robots, (x, y), self,
+                              battery=rand.randint(80, 100))
 
             self.schedule.add(pr)
             self.grid.place_agent(pr, (x, y))
@@ -82,13 +84,23 @@ class Mountain(mesa.Model):
         )
 
     def step(self):
-        """
-        * Run while there are Undone boxes, otherwise stop running model.
-        """
-        self.tick = self.tick + 1
         if pending_patients(self) > 0:
+            if Found_patients != 0:
+                self.run_auction()
             self.schedule.step()
         else:
             self.running = False
         print("running...", self.tick)
         self.datacollector.collect(self)
+
+    def run_auction(self):
+        healer_agents_l = [a for a in self.schedule.agents if isinstance(
+            a, healer_Robot) and a.state == BIDDING]
+        for a in healer_agents_l:
+            tokens_amount = []
+            tokens_amount.append(a.tokens)
+            for token in tokens_amount:
+                if token >= max(tokens_amount):
+                    a.tokens = None
+                    a.state = FREE
+                    tokens_amount.pop(tokens_amount.index(max(tokens_amount)))
