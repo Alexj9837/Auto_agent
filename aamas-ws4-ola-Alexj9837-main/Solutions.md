@@ -1,6 +1,8 @@
 TASK ONE-
 Task one may be found inside the task one folder.
 
+
+
 TASK TWO-
 The basic operation of robots include:
 • Exploring and movement towards the mountain and the missing persons
