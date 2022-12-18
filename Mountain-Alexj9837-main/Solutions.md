@@ -59,4 +59,6 @@ algorithms not covered in the module sessions and write a short report (300
 words) describing in your own words how the algorithm works. In addition, a
 flow chart of the algorithm and an example would make your report stronger.
 Some of the algorithms available are listed here, however you are encouraged to
-browse around and choose the one you feel more comfortable with
+browse around and choose the one you feel more comfortable with.
+
+Please find inside folder task4
